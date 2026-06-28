@@ -1,0 +1,62 @@
+/* Glassmorphism Framework Base Layer Utilities */
+.glassmorphism {
+    background: rgba(18, 24, 38, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+.neon-glow {
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neon-glow:hover {
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
+    transform: translateY(-1px);
+}
+
+/* Custom UI Range Input Components overrides */
+input[type="range"]::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+    cursor: pointer;
+    appearance: none;
+    transition: transform 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+/* Custom Scrollbar Interface styling */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0B0F19;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1E293B;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
+
+/* Print Overrides to cleanly export reports */
+@media print {
+    body { background: white !important; color: black !important; }
+    header, nav, .w-80, button, select, input[type="range"] { display: none !important; }
+    main { p: 0 !important; overflow: visible !important; }
+    .screen-content { display: block !important; }
+    .bg-carddark, .bg-slate-900\/60 { background: #f8fafc !important; border: 1px solid #cbd5e1 !important; color: black !important; }
+    .text-white { color: black !important; }
+}

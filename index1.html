@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeatShield AI - GEE Decision Support System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyberdark: '#0B0F19',
+                        paneldark: '#121826',
+                        carddark: '#161F32',
+                        accentcyan: '#00E5FF',
+                        accentblue: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-cyberdark text-slate-100 font-sans overflow-hidden h-screen w-screen flex flex-col antialiased">
+
+    <div id="async-loader" class="fixed inset-0 bg-cyberdark/90 z-[9999] hidden flex flex-col items-center justify-center space-y-4">
+        <div class="w-12 h-12 border-4 border-accentcyan/20 border-t-accentcyan rounded-full animate-spin"></div>
+        <p id="async-loader-text" class="text-xs font-mono tracking-widest text-accentcyan uppercase">Querying Google Earth Engine clusters...</p>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[999] space-y-2 pointer-events-none"></div>
+
+    <header class="h-16 bg-paneldark border-b border-slate-800 flex items-center justify-between px-6 z-50 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-r from-accentcyan to-accentblue p-2 rounded-lg text-cyberdark">
+                <i class="fa-solid fa-shield-halved text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-md font-bold tracking-wider text-white">HEATSHIELD AI</h1>
+                <p class="text-xs text-accentcyan font-mono">ISRO BAH 2026 PLATFORM</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-6 text-sm">
+            <div class="flex items-center space-x-2 font-mono text-xs bg-cyberdark px-3 py-1.5 rounded border border-slate-800">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-slate-400">GEE GATEWAY: SECURELY CONNECTED</span>
+            </div>
+            <div class="text-slate-300 font-medium text-xs"><i class="fa-solid fa-user-tie mr-2 text-accentcyan"></i>ISRO MISSION PLANNER</div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <nav class="w-64 bg-paneldark border-r border-slate-800 flex flex-col justify-between py-6 z-40 shrink-0 select-none">
+            <div class="space-y-1 px-3" id="nav-container">
+                <p class="text-[10px] font-bold text-slate-500 tracking-widest px-3 mb-3 uppercase">Navigation Module</p>
+                </div>
+            <div class="px-6 font-mono text-[10px] text-slate-500 space-y-1">
+                <div>ENGINE CORE: v2.4.1-PROD</div>
+                <div>DATA COMPILATION: 2026</div>
+            </div>
+        </nav>
+
+        <main class="flex-1 overflow-hidden relative h-full">
+            
+            <div id="screen-dashboard" class="screen-content h-full p-6 overflow-y-auto hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Urban Heat Mitigation & Cooling Strategy Planner</h2>
+                        <p class="text-xs text-slate-400">Regional Overview & Strategic Telemetry</p>
+                    </div>
+                    <button onclick="NavigationEngine.navigate('mapping')" class="bg-gradient-to-r from-accentcyan to-accentblue text-cyberdark font-bold text-xs px-4 py-2.5 rounded neon-glow transition-all">LAUNCH SPATIAL ENGINE <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-carddark p-4 rounded-xl border border-slate-800">
+                        <div class="flex justify-between items-start text-slate-400 text-xs"><span>AVERAGE LAND TEMP</span><i class="fa-solid fa-temperature-high text-rose-500"></i></div>
+                        <div class="text-2xl font-bold text-white mt-1 font-mono">34.5°C</div>
+                        <div class="text-[10px] text-rose-400 mt-1 font-mono"><i class="fa-solid fa-arrow-trend-up"></i> +2.4°C vs Historical Baseline</div>
+                    </div>
+                    <div class="bg-carddark p-4 rounded-xl border border-slate-800">
+                        <div class="flex justify-between items-start text-slate-400 text-xs"><span>VEGETATION INDEX (NDVI)</span><i class="fa-solid fa-leaf text-emerald-500"></i></div>
+                        <div class="text-2xl font-bold text-white mt-1 font-mono">0.14</div>
+                        <div class="text-[10px] text-rose-400 mt-1 font-mono"><i class="fa-solid fa-arrow-trend-down"></i> -18.2% Canopy Degradation</div>
+                    </div>
+                    <div class="bg-carddark p-4 rounded-xl border border-slate-800">
+                        <div class="flex justify-between items-start text-slate-400 text-xs"><span>BUILT-UP INDEX (NDBI)</span><i class="fa-solid fa-building text-amber-500"></i></div>
+                        <div class="text-2xl font-bold text-white mt-1 font-mono">0.72</div>
+                        <div class="text-[10px] text-amber-400 mt-1 font-mono"><i class="fa-solid fa-arrow-trend-up"></i> +34.1% Impervious Surface</div>
+                    </div>
+                    <div class="bg-carddark p-4 rounded-xl border border-slate-800">
+                        <div class="flex justify-between items-start text-slate-400 text-xs"><span>CRITICAL HOTSPOT RISK</span><i class="fa-solid fa-triangle-exclamation text-red-500 animate-pulse"></i></div>
+                        <div class="text-2xl font-bold text-white mt-1 font-mono">82%</div>
+                        <div class="text-[10px] text-red-400 mt-1 font-mono">142 Critical Heat Anomalies Detected</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-carddark rounded-xl border border-slate-800 p-4 h-96 flex flex-col">
+                        <div class="text-xs font-bold text-slate-400 tracking-wide uppercase mb-3">Multi-Year LST Climate Trendline</div>
+                        <div class="flex-1 min-h-0 relative">
+                            <canvas id="dashboard-trend-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-carddark rounded-xl border border-slate-800 p-4 h-96 flex flex-col justify-between">
+                        <div class="text-xs font-bold text-slate-400 tracking-wide uppercase">AI Mitigation Priority Summary</div>
+                        <div class="space-y-3 my-4 flex-1 overflow-y-auto pr-1">
+                            <div class="p-2.5 bg-slate-900/60 rounded border-l-4 border-red-500 text-xs">
+                                <div class="font-bold text-white mb-0.5">Sector 4 (Commercial Core)</div>
+                                <p class="text-slate-400 text-[11px]">LST: 43.8°C | Urgent tree canopy expansion required.</p>
+                            </div>
+                            <div class="p-2.5 bg-slate-900/60 rounded border-l-4 border-orange-500 text-xs">
+                                <div class="font-bold text-white mb-0.5">Industrial Zone B</div>
+                                <p class="text-slate-400 text-[11px]">High NDBI (0.84) | Cool roof retrofit priority.</p>
+                            </div>
+                            <div class="p-2.5 bg-slate-900/60 rounded border-l-4 border-yellow-500 text-xs">
+                                <div class="font-bold text-white mb-0.5">Residential West Ring</div>
+                                <p class="text-slate-400 text-[11px]">Low connectivity | Proposed Green Corridor connection.</p>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-accentcyan font-mono bg-accentcyan/5 p-2 rounded border border-accentcyan/20 flex items-center justify-between">
+                            <span><i class="fa-solid fa-robot mr-1.5"></i> AI CONFIDENCE RATING</span>
+                            <span class="font-bold">94.2%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-mapping" class="screen-content h-full flex hidden">
+                <div class="w-80 border-r border-slate-800 p-4 overflow-y-auto flex flex-col justify-between h-full bg-cyberdark shrink-0">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase">Analysis Controls</h3>
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 space-y-4 text-xs">
+                            <div>
+                                <label class="block text-slate-400 mb-1.5 font-medium">Select Study Area</label>
+                                <select id="map-region-select" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-2 text-white focus:outline-none focus:border-accentcyan font-mono">
+                                    <option value="blr">Bengaluru Core Region</option>
+                                    <option value="del">Delhi National Capital</option>
+                                    <option value="mum">Mumbai Metro Area</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1.5 font-medium">Satellite Platform</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-2 text-white focus:outline-none font-mono">
+                                    <option>Landsat 9 OLI-2 / TIRS-2</option>
+                                    <option>Sentinel-2 MSI SR</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1.5 font-medium">Cloud Cover Threshold</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-2 text-white focus:outline-none font-mono">
+                                    <option>&lt; 5.0% Cloud Masking</option>
+                                    <option>&lt; 10.0% Cloud Masking</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1.5 font-medium text-slate-400">
+                                    <span>Hotspot Threshold</span>
+                                    <span class="text-accentcyan font-mono"><span id="thresh-val">35</span>°C</span>
+                                </div>
+                                <input type="range" id="mapping-threshold" min="20" max="50" value="35" class="w-full accent-accentcyan bg-slate-800 rounded-lg appearance-none h-1.5">
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="DataPipeline.runGEEQuery()" class="w-full bg-gradient-to-r from-accentcyan to-accentblue text-cyberdark font-black py-3 rounded-lg text-xs tracking-wider neon-glow uppercase transition-all mt-4">Compile GEE Layers</button>
+                </div>
+
+                <div class="flex-1 flex flex-col p-4 relative h-full bg-slate-950">
+                    <div class="absolute top-6 left-6 z-[1000] glassmorphism rounded-full px-4 py-1.5 flex items-center space-x-2 text-[11px] font-mono shadow-2xl">
+                        <span class="text-slate-400">ACTIVE LAYER:</span>
+                        <span class="text-accentcyan font-bold tracking-wider uppercase" id="active-layer-indicator">Land Surface Temp (LST)</span>
+                    </div>
+                    <div id="gis-map-canvas" class="w-full h-full rounded-xl border border-slate-800"></div>
+                </div>
+
+                <div class="w-80 border-l border-slate-800 p-4 overflow-y-auto flex flex-col justify-between h-full bg-cyberdark shrink-0">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase">Statistical Profile</h3>
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 space-y-4 text-xs">
+                            <div class="border-b border-slate-800 pb-3">
+                                <div class="text-[10px] text-slate-400 uppercase font-medium">Calculated Peak Value</div>
+                                <div class="text-2xl font-bold text-rose-500 font-mono mt-0.5">43.8°C</div>
+                            </div>
+                            <div class="border-b border-slate-800 pb-3">
+                                <div class="text-[10px] text-slate-400 uppercase font-medium">Mean Surface Temp</div>
+                                <div class="text-2xl font-bold text-amber-500 font-mono mt-0.5">34.5°C</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400 uppercase font-medium mb-2">Automated Synthesis</div>
+                                <p class="text-[11px] text-slate-300 leading-relaxed bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                                    Highest thermal anomalies correspond to sparse urban corridors with high-density NDBI profiles.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="DataPipeline.exportUtility('pdf')" class="w-full bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-bold py-2.5 rounded-lg text-xs tracking-wide transition-all mt-4"><i class="fa-solid fa-file-pdf mr-2 text-rose-500"></i>Export GeoPDF Sheet</button>
+                </div>
+            </div>
+
+            <div id="screen-driver" class="screen-content h-full flex hidden">
+                <div class="w-80 border-r border-slate-800 p-4 flex flex-col justify-between h-full bg-cyberdark shrink-0">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase">Driver Controls</h3>
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 text-xs space-y-3">
+                            <div>
+                                <label class="block text-slate-400 mb-1.5">Correlation Scope</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-2 text-white font-mono">
+                                    <option>LST ↔ NDVI [Canopy Multi-Proxy]</option>
+                                    <option>LST ↔ NDBI [Albedo Proxy]</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="DataPipeline.triggerSimulatedCompute('Computing Driver Weights...')" class="w-full bg-gradient-to-r from-accentcyan to-accentblue text-cyberdark font-black py-3 rounded-lg text-xs tracking-wider neon-glow uppercase transition-all">Compute Drivers</button>
+                </div>
+
+                <div class="flex-1 p-6 space-y-6 overflow-y-auto h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-carddark p-5 rounded-xl border border-slate-800 h-80 flex flex-col">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Calculated Drivers Contribution Weighting</h4>
+                            <div class="flex-1 min-h-0 relative">
+                                <canvas id="driver-weight-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-carddark p-5 rounded-xl border border-slate-800 h-80 flex flex-col">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Environmental Covariance Cross-Matrix</h4>
+                            <div class="flex-1 min-h-0 relative">
+                                <canvas id="driver-matrix-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-carddark p-5 rounded-xl border border-slate-800">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">AI Causality Chain Blueprint</h4>
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-center text-xs font-mono">
+                            <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg flex-1 w-full">High Impervious Build</div>
+                            <div class="text-accentcyan rotate-90 md:rotate-0"><i class="fa-solid fa-arrow-right-long text-lg"></i></div>
+                            <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg flex-1 w-full text-rose-400 font-bold">Canopy Depletion (-18.2%)</div>
+                            <div class="text-accentcyan rotate-90 md:rotate-0"><i class="fa-solid fa-arrow-right-long text-lg"></i></div>
+                            <div class="p-3 bg-gradient-to-br from-red-950/40 to-carddark border border-red-500/40 rounded-lg flex-1 w-full text-red-400 font-black">UHI Anomaly Maxima</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-80 border-l border-slate-800 p-4 bg-cyberdark shrink-0">
+                    <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase mb-4">Causality Report</h3>
+                    <div class="p-4 bg-indigo-950/20 border border-indigo-500/20 rounded-xl space-y-2">
+                        <div class="text-[10px] text-indigo-400 uppercase font-bold tracking-wider flex items-center"><i class="fa-solid fa-brain mr-1.5"></i> Neural Interpretation</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Linear regressions run over spatial cross-sections indicate NDBI variations account for 42% of local micro-climate thermal variation curves.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-planner" class="screen-content h-full flex hidden">
+                <div class="w-80 border-r border-slate-800 p-4 flex flex-col justify-between h-full bg-cyberdark shrink-0">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase">Planning Controls</h3>
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 text-xs space-y-4">
+                            <div>
+                                <label class="block text-slate-400 mb-1.5">Target Mitigation Threshold</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-2 text-white font-mono">
+                                    <option>-2.5°C Goal Baseline</option>
+                                    <option>-1.5°C Quick Wins Model</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1.5">Corridor Buffer Scope</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-2 text-white font-mono">
+                                    <option>50 Meters Geometric Width</option>
+                                    <option>100 Meters Regional Buffer</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="DataPipeline.triggerSimulatedCompute('Optimizing Network Corridors...')" class="w-full bg-gradient-to-r from-accentcyan to-accentblue text-cyberdark font-black py-3 rounded-lg text-xs tracking-wider neon-glow uppercase transition-all">Optimize Corridors</button>
+                </div>
+
+                <div class="flex-1 flex flex-col p-4 relative h-full bg-slate-950">
+                    <div class="absolute top-6 left-6 z-[1000] glassmorphism rounded-full px-4 py-1.5 flex items-center space-x-2 text-[11px] font-mono shadow-2xl">
+                        <span class="text-emerald-400 font-bold"><i class="fa-solid fa-seedling mr-1.5"></i>AI CORRIDOR INTERVENTION OVERLAY ACTIVE</span>
+                    </div>
+                    <div id="planner-map-canvas" class="w-full h-full rounded-xl border border-slate-800"></div>
+                </div>
+
+                <div class="w-80 border-l border-slate-800 p-4 flex flex-col justify-between h-full bg-cyberdark shrink-0">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase">Strategic Estimations</h3>
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 text-xs space-y-4">
+                            <div>
+                                <div class="text-[10px] text-slate-400 uppercase font-medium">Model Derived Mitigation Yield</div>
+                                <div class="text-xl font-bold text-emerald-400 font-mono mt-0.5">-2.4°C Temperature Drop</div>
+                            </div>
+                            <div class="border-t border-slate-800 pt-3">
+                                <div class="text-[10px] text-slate-400 uppercase font-medium mb-2">Asset Infrastructure Weights</div>
+                                <ul class="space-y-2 font-mono text-[11px] text-slate-300">
+                                    <li class="flex items-center"><i class="fa-solid fa-tree text-emerald-500 mr-2 w-4 text-center"></i>Canopy Unit Count: 145K</li>
+                                    <li class="flex items-center"><i class="fa-solid fa-road text-accentcyan mr-2 w-4 text-center"></i>Corridor Vectors: 12.4 km</li>
+                                    <li class="flex items-center"><i class="fa-solid fa-indian-rupee-sign text-amber-500 mr-2 w-4 text-center"></i>Est Budget: ₹64.2 Cr</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="DataPipeline.exportUtility('json')" class="w-full bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-bold py-2.5 rounded-lg text-xs tracking-wide transition-all mt-4"><i class="fa-solid fa-file-code mr-2 text-amber-500"></i>Export GeoJSON Feature Collection</button>
+                </div>
+            </div>
+
+            <div id="screen-simulator" class="screen-content h-full flex hidden">
+                <div class="w-80 border-r border-slate-800 p-4 flex flex-col justify-between h-full bg-cyberdark shrink-0">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase">Simulation Setup</h3>
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 text-xs space-y-3">
+                            <div>
+                                <label class="block text-slate-400 mb-1.5">Climatic Modeling Horizon</label>
+                                <select class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-2 text-white font-mono">
+                                    <option>2035 - IPCC Shared Socioeconomic Path 2</option>
+                                    <option>2050 - Long Range Aggressive Anomaly</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="SimulationEngine.resetToBaseline()" class="w-full bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-bold py-2.5 rounded-lg text-xs tracking-wide transition-all">Reset to Baseline</button>
+                </div>
+
+                <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 overflow-y-auto h-full">
+                    <div class="bg-carddark p-5 rounded-xl border border-slate-800 space-y-5 h-fit">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider"><i class="fa-solid fa-sliders text-accentcyan mr-2"></i>Intervention Weights Parameter Adjustment</h4>
+                        
+                        <div class="text-xs">
+                            <div class="flex justify-between mb-1.5 font-medium">
+                                <span class="text-slate-300">Canopy Plantation Intensity</span>
+                                <span id="slide-tree-val" class="text-emerald-400 font-mono font-bold">20%</span>
+                            </div>
+                            <input type="range" id="sim-slide-tree" min="0" max="100" value="20" class="w-full accent-emerald-500 bg-slate-800 rounded-lg appearance-none h-1.5">
+                        </div>
+
+                        <div class="text-xs">
+                            <div class="flex justify-between mb-1.5 font-medium">
+                                <span class="text-slate-300">High-Albedo Coating Adoption</span>
+                                <span id="slide-roof-val" class="text-accentcyan font-mono font-bold">15%</span>
+                            </div>
+                            <input type="range" id="sim-slide-roof" min="0" max="100" value="15" class="w-full accent-accentcyan bg-slate-800 rounded-lg appearance-none h-1.5">
+                        </div>
+
+                        <div class="text-xs">
+                            <div class="flex justify-between mb-1.5 font-medium">
+                                <span class="text-slate-300">Hydrological Basin Optimization</span>
+                                <span id="slide-water-val" class="text-accentblue font-mono font-bold">5%</span>
+                            </div>
+                            <input type="range" id="sim-slide-water" min="0" max="100" value="5" class="w-full accent-accentblue bg-slate-800 rounded-lg appearance-none h-1.5">
+                        </div>
+                    </div>
+
+                    <div class="bg-carddark p-5 rounded-xl border border-slate-800 space-y-4 h-fit">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider"><i class="fa-solid fa-square-poll-horizontal text-accentcyan mr-2"></i>Simulated Dynamic Outcomes Matrix</h4>
+                        <div class="space-y-3 font-mono text-xs">
+                            <div class="p-4 bg-slate-900/60 border border-slate-800 rounded-xl flex justify-between items-center">
+                                <span class="text-slate-400">PREDICTED MEAN LAND SURFACE TEMP</span>
+                                <span id="sim-temp-display" class="text-emerald-400 font-bold text-sm">33.5°C</span>
+                            </div>
+                            <div class="p-4 bg-slate-900/60 border border-slate-800 rounded-xl flex justify-between items-center">
+                                <span class="text-slate-400">COMPUTED CLIMATE UHI RISK LAYER</span>
+                                <span id="sim-risk-display" class="text-emerald-400 font-bold text-sm">54 / 100</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-80 border-l border-slate-800 p-4 bg-cyberdark shrink-0">
+                    <h3 class="text-xs font-bold text-accentcyan tracking-wider uppercase mb-4">Neural Feedback</h3>
+                    <div class="p-4 bg-slate-900/40 border border-slate-800 rounded-xl">
+                        <div class="text-[10px] text-accentblue uppercase font-mono font-bold mb-2 tracking-wider"><i class="fa-solid fa-chart-line mr-1.5"></i>Predictive Bounds Model</div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Algorithmic weights project standard deviation optimization values across selected criteria layers inside real-time browser script instances.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-recommendations" class="screen-content h-full p-6 overflow-y-auto hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">AI Recommendations & Decision Support Framework</h2>
+                        <p class="text-xs text-slate-400">Final Policy Deployment Strategy Brief</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-3">
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                            <div class="space-y-1">
+                                <span class="bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Priority Level Alpha</span>
+                                <h5 class="text-white font-bold text-sm">Target Hotspot Plantations Block</h5>
+                                <p class="text-slate-400 text-[11px]">Deploy 145,000 native tree species across high albedo industrial boundaries.</p>
+                            </div>
+                            <div class="text-right font-mono text-emerald-400 font-bold bg-emerald-500/5 px-3 py-2 rounded border border-emerald-500/10">
+                                Est Yield: -1.8°C
+                            </div>
+                        </div>
+
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                            <div class="space-y-1">
+                                <span class="bg-orange-500/10 border border-orange-500/20 text-orange-400 font-mono text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Priority Level Beta</span>
+                                <h5 class="text-white font-bold text-sm">Continuous Thermal Insulation Corridors</h5>
+                                <p class="text-slate-400 text-[11px]">Establish 12.4km of continuous tree canopy vectors linking segmented parks.</p>
+                            </div>
+                            <div class="text-right font-mono text-emerald-400 font-bold bg-emerald-500/5 px-3 py-2 rounded border border-emerald-500/10">
+                                Est Yield: -1.2°C
+                            </div>
+                        </div>
+
+                        <div class="bg-carddark p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                            <div class="space-y-1">
+                                <span class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-mono text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Priority Level Gamma</span>
+                                <h5 class="text-white font-bold text-sm">Hydrological Cooling Basins</h5>
+                                <p class="text-slate-400 text-[11px]">Re-vegetate lake buffer areas across 4 target municipal urban wetlands.</p>
+                            </div>
+                            <div class="text-right font-mono text-emerald-400 font-bold bg-emerald-500/5 px-3 py-2 rounded border border-emerald-500/10">
+                                Est Yield: -0.5°C
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-carddark p-4 rounded-xl border border-slate-800 flex flex-col justify-between h-fit space-y-6">
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Final Project Summary</h4>
+                            <div class="space-y-3 font-mono text-xs">
+                                <div class="flex justify-between border-b border-slate-800 pb-2"><span>Implementation Index</span><span class="text-accentcyan font-bold">94 / 100</span></div>
+                                <div class="flex justify-between border-b border-slate-800 pb-2"><span>Structural Feasibility</span><span class="text-emerald-400 font-bold">High (91%)</span></div>
+                                <div class="flex justify-between border-b border-slate-800 pb-2"><span>Allocated Core Budget</span><span class="text-white font-bold">₹64.2 Crores</span></div>
+                                <div class="flex justify-between border-b border-slate-800 pb-2"><span>Total Runtime Horizon</span><span class="text-white font-bold">48 Months</span></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <button onclick="window.print()" class="w-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 hover:text-white font-bold py-2.5 rounded-lg text-xs tracking-wide transition-all flex items-center justify-center"><i class="fa-solid fa-print mr-2 text-rose-500"></i>Print Executive Layout Sheet</button>
+                            <button onclick="DataPipeline.exportUtility('csv')" class="w-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 hover:text-white font-bold py-2.5 rounded-lg text-xs tracking-wide transition-all flex items-center justify-center"><i class="fa-solid fa-file-csv mr-2 text-emerald-500"></i>Export Consolidated CSV</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-r from-emerald-950/40 to-slate-900 border border-emerald-500/30 p-4 rounded-xl flex items-center space-x-4">
+                    <div class="bg-emerald-500 text-cyberdark p-3 rounded-full text-lg font-bold flex items-center justify-center w-10 h-10 shrink-0"><i class="fa-solid fa-square-check"></i></div>
+                    <div>
+                        <h4 class="text-sm font-bold text-white tracking-wide">HeatShield AI Analysis Completed Successfully.</h4>
+                        <p class="text-xs text-slate-400">Integrated Google Earth Engine + AI Decision Support System Ready for Urban Planning Handover.</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
